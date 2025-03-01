@@ -11,7 +11,7 @@ public class MatrixMultiply {
     public static int[][] multiply(int[][] a, int[][] b, int cutoff){
         MatrixMultiply.CUTOFF = cutoff;
         int[][] product = new int[a.length][b[0].length];
-        POOL.invoke(new MatrixMultiplyAction()); // TODO: add parameters to match your constructor
+        POOL.invoke(new MatrixMultiplyAction(a, b, product, 0, a.length, 0, a[0].length)); // TODO: add parameters to match your constructor
         return product;
     }
 
@@ -30,14 +30,57 @@ public class MatrixMultiply {
     }
 
     private static class MatrixMultiplyAction extends RecursiveAction{
-        // TODO: select fields
+        int[][] a;
+        int[][] b;
+        int[][] output;
+        int row_lo;
+        int row_hi;
+        int col_lo;
+        int col_hi;
 
-        public MatrixMultiplyAction(){
-            // TODO: implement constructor
+        public MatrixMultiplyAction(int[][] a, int[][] b, int[][] output, int row_lo, int row_hi, int col_lo, int col_hi){
+            this.a = a;
+            this.b = b;
+            this.output = output;
+            // Y axis bounds
+            this.row_lo = row_lo;
+            this.row_hi = row_hi;
+            // X axis bounds
+            this.col_lo = col_lo;
+            this.col_hi = col_hi;
         }
 
         public void compute(){
-            // TODO: implement
+            // If the bounded area is within the cutoff process sequentially and return
+            if ((row_hi - row_lo) * (col_hi - col_lo) >= MatrixMultiply.CUTOFF) {
+                // Loop over each entry in our sub array and 
+                // compute the dot product with dotProduct
+                for (int row = row_lo; row < row_hi; row++) {
+                    for (int col = col_lo; col < col_hi; col++) {
+                        output[row][col] = dotProduct(a, b, row, col, MatrixMultiply.CUTOFF);
+                    }
+                }
+                // This subarray is done so return
+                return;
+            }
+            // Otherwise create the four divided subtasks
+            // Top left region, lo to hi / 2 for row and col
+            MatrixMultiplyAction topleft = new MatrixMultiplyAction(a, b, output, row_lo, row_hi / 2, col_lo, col_hi / 2);
+            // Top right, lo to hi / 2 for row and hi / 2 to hi for col
+            MatrixMultiplyAction topright = new MatrixMultiplyAction(a, b, output, row_lo, row_hi / 2, col_hi / 2, col_hi);
+            // Lower left, hi / 2 to hi for row and low to hi / 2 for col
+            MatrixMultiplyAction lowleft = new MatrixMultiplyAction(a, b, output, row_hi / 2, row_hi, col_lo, col_hi / 2);
+            // Lower right, hi / 2 to hi for row and col
+            MatrixMultiplyAction lowright = new MatrixMultiplyAction(a, b, output, row_hi / 2, row_hi, col_hi / 2, col_hi);
+            // Fork three of the actions, compute one after, then join back
+            topright.fork();
+            lowleft.fork();
+            lowright.fork();
+            topleft.compute();
+            topright.join();
+            lowleft.join();
+            lowright.join();
+            // All actions are completed so we can exit
         }
 
     }
