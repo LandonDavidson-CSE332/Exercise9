@@ -9,7 +9,6 @@ public class FilterEmpty {
     // Ignoring the initialization of arrays, your implementation must have linear work and log(n) span
     public static String[] filterEmpty(String[] arr, int cutoff){
         FilterEmpty.CUTOFF = cutoff;
-        // TODO: Implement to match the filter/pack procedure discussed in class.
         // Reminder: the main steps are:
         // 1) do a map on the arr of strings
         // 2) do prefix sum on the map result (implementation provided for you in ParallelPrefix.java)
@@ -20,7 +19,13 @@ public class FilterEmpty {
         int[] result = new int[arr.length];
         POOL.invoke(new FilterEmptyAction(0, arr.length, result, arr));
 
-        return null;
+        // Prefix sum the bit result to get index of each result
+        int[] sum = ParallelPrefix.prefixSum(result, cutoff);
+
+        // Finally copy good values to packed array
+        String[] packed = new String[sum[sum.length - 1]];
+        POOL.invoke(new PackAction(0, arr.length, result, sum, arr, packed));
+        return packed;
     }
 
     // Recursive action to map the strings
@@ -57,5 +62,45 @@ public class FilterEmpty {
             left.compute();
             right.join();
         }
+    }
+
+    public static class PackAction extends RecursiveAction {
+        int lo;
+        int hi;
+        int[] bits;
+        int[] bitsum;
+        String[] input;
+        String[] output;
+
+        public PackAction(int lo, int hi, int[] bits, int[] bitsum, String[]input, String[] output) {
+            this.lo = lo;
+            this.hi = hi;
+            this.bits = bits;
+            this.bitsum = bitsum;
+            this.input = input;
+            this.output = output;
+        }
+
+        @Override
+        protected void compute() {
+            // If subarray is within cutoff compute sequentially
+            if (hi - lo <= FilterEmpty.CUTOFF) {
+                for (int i = lo; i < hi; i ++) {
+                    if (bits[i] == 1) {
+                        output[bitsum[i] - 1] = input[i];
+                    }
+                }
+                // We are done with subarray so return
+                return;
+            }    
+            // Otherwise create left/right threads and fork/compute
+            int mid = lo + (hi - lo) / 2;
+            PackAction left = new PackAction(lo, mid, bits, bitsum, input, output);
+            PackAction right = new PackAction(mid, hi, bits, bitsum, input, output);
+            right.fork();
+            left.compute();
+            right.join();
+        }
+
     }
 }
