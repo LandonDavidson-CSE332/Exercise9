@@ -64,14 +64,16 @@ public class MatrixMultiply {
                 return;
             }
             // Otherwise create the four divided subtasks
-            // Top left region, lo to hi / 2 for row and col
-            MatrixMultiplyAction topleft = new MatrixMultiplyAction(a, b, output, row_lo, row_hi / 2, col_lo, col_hi / 2);
-            // Top right, lo to hi / 2 for row and hi / 2 to hi for col
-            MatrixMultiplyAction topright = new MatrixMultiplyAction(a, b, output, row_lo, row_hi / 2, col_hi / 2, col_hi);
-            // Lower left, hi / 2 to hi for row and low to hi / 2 for col
-            MatrixMultiplyAction lowleft = new MatrixMultiplyAction(a, b, output, row_hi / 2, row_hi, col_lo, col_hi / 2);
-            // Lower right, hi / 2 to hi for row and col
-            MatrixMultiplyAction lowright = new MatrixMultiplyAction(a, b, output, row_hi / 2, row_hi, col_hi / 2, col_hi);
+            // Top left region, lo to mid for row and col
+            int row_mid = row_lo + (row_hi - row_lo) / 2;
+            int col_mid = col_lo + (col_hi - col_lo) / 2;
+            MatrixMultiplyAction topleft = new MatrixMultiplyAction(a, b, output, row_lo, row_mid, col_lo, col_mid);
+            // Top right, lo to mid for row and mid to hi for col
+            MatrixMultiplyAction topright = new MatrixMultiplyAction(a, b, output, row_lo, row_mid, col_mid, col_hi);
+            // Lower left, mid to hi for row and low to mid for col
+            MatrixMultiplyAction lowleft = new MatrixMultiplyAction(a, b, output, row_mid, row_hi, col_lo, col_mid);
+            // Lower right, mid to hi for row and col
+            MatrixMultiplyAction lowright = new MatrixMultiplyAction(a, b, output, row_mid, row_hi, col_mid, col_hi);
             // Fork three of the actions, compute one after, then join back
             topright.fork();
             lowleft.fork();
