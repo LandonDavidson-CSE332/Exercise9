@@ -15,7 +15,45 @@ public class FilterEmpty {
         // 2) do prefix sum on the map result (implementation provided for you in ParallelPrefix.java)
         // 3) initialize and array whose length matches the last value in the prefix sum result
         // 4) do a map to populate that new array.
+
+        // Invoke filter action to get our bit result array
+        int[] result = new int[arr.length];
+        POOL.invoke(new FilterEmptyAction(0, arr.length, result, arr));
+
         return null;
     }
 
+    // Recursive action to map the strings
+    public static class FilterEmptyAction extends RecursiveAction {
+        int lo;
+        int hi;
+        int[] results;
+        String[] input;
+
+        public FilterEmptyAction(int lo, int hi, int[] results, String[] input) {
+            this.lo = lo;
+            this.hi = hi;
+            this.results = results;
+            this.input = input;
+        }
+
+        @Override
+        protected void compute() {
+            // If we are in the cutoff range process sequentially
+            if (hi - lo <= FilterEmpty.CUTOFF) {
+                for (int i = lo; i < hi; i++) {
+                    if (!input[i].isEmpty()) {
+                        results[i] = 1;
+                    }
+                }
+            }
+            // Otherwise create left and right tasks and fork/compute
+            int mid = lo + (hi - lo) / 2;
+            FilterEmptyAction left = new FilterEmptyAction(lo, mid, results, input);
+            FilterEmptyAction right = new FilterEmptyAction(mid, hi, results, input);
+            right.fork();
+            left.compute();
+            right.join();
+        }
+    }
 }
