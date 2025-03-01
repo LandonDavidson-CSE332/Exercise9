@@ -46,6 +46,8 @@ public class FilterEmpty {
                         results[i] = 1;
                     }
                 }
+                // We are done with this subarray so return
+                return;
             }
             // Otherwise create left and right tasks and fork/compute
             int mid = lo + (hi - lo) / 2;
