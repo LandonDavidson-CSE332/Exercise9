@@ -26,7 +26,7 @@ public class MatrixMultiply {
         for (int i = 0; i < inb.length; i++) {
             inb[i] = b[i][col];
         }
-        return POOL.invoke(new DotProductTask(0, ina.length, ina, inb, cutoff));
+        return POOL.invoke(new DotProductTask(0, ina.length, ina, inb));
     }
 
     private static class MatrixMultiplyAction extends RecursiveAction{
@@ -46,10 +46,8 @@ public class MatrixMultiply {
     private static class DotProductTask extends RecursiveTask<Integer>{
         int[] a;
         int[] b;
-        int CUTOFF;
 
-        public DotProductTask(int lo, int hi, int[] a, int[] b, int cutoff){
-            this.CUTOFF = cutoff;
+        public DotProductTask(int lo, int hi, int[] a, int[] b){
             // Create a subarray of a and b from lo to hi
             this.a = new int[hi - lo];
             this.b = new int[hi - lo];
@@ -61,13 +59,13 @@ public class MatrixMultiply {
 
         public Integer compute(){
             // If we are at the cutoff then sequentially process
-            if (a.length <= CUTOFF) {
+            if (a.length <= MatrixMultiply.CUTOFF) {
                 return Sequential.dotProduct(a, b);
             }
             // Calculate mid point and create left/right tasks around it
             int mid = a.length / 2;
-            DotProductTask left = new DotProductTask(0, mid, a, b, CUTOFF);
-            DotProductTask right = new DotProductTask(mid, a.length, a, b, CUTOFF);
+            DotProductTask left = new DotProductTask(0, mid, a, b);
+            DotProductTask right = new DotProductTask(mid, a.length, a, b);
             // Fork left and then compute right in this thread
             left.fork();
             int right_sum = right.compute();
